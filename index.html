@@ -301,6 +301,84 @@
     let selectedText = '';
     let selectedElement = null;
 
+
+
+    // 打开文件
+    function openFile(data) {
+      const { filePath, content } = data;
+      
+      console.log('filePath:', filePath); 
+      console.log('content:', content);
+
+      try {
+        // 从文件路径提取文件名作为笔记标题（当作字符串处理）
+        const fileName = filePath.split('\\').pop().split('/').pop().replace('.md', '');
+        
+        // 检查是否已经存在具有相同 filePath 的笔记
+        let existingNote = notes.find(note => note.filePath === filePath);
+        
+        if (existingNote) {
+          // 更新现有的笔记对象
+          console.log('更新现有笔记:', existingNote.title);
+          // 打开笔记并显示内容
+          currentNote = existingNote;
+          updateActiveNote();
+          createTab(existingNote);
+        } else {
+          // 创建新的笔记对象
+          const noteId = Date.now().toString();
+          // 生成保存在 data 目录下的 HTML 文件路径
+          const htmlFileName = `${fileName}.html`;
+          const htmlPath = `data/${htmlFileName}`;
+          
+          const newNote = {
+            id: noteId,
+            title: fileName,
+            filePath: filePath,
+            htmlPath: htmlPath
+          };
+          
+          // 添加到笔记列表
+          notes.push(newNote);
+          updateNoteList();
+          
+          // 打开笔记并显示内容
+          currentNote = newNote;
+          updateActiveNote();
+          createTab(newNote);
+        }
+        
+        // 加载文件内容到编辑器
+        document.getElementById('editor').value = content;
+        renderPreview(content);
+        
+        // 生成对应的 HTML 文件
+        const htmlContent = generateHtml(content, fileName);
+        // 注意：在 contextIsolation: true 的情况下，渲染进程无法直接访问 fs 模块
+        // 这里需要通过与主进程通信来保存 HTML 文件
+        window.electronAPI.saveHtmlFile(currentNote.htmlPath, htmlContent);
+        
+      } catch (error) {
+        console.error('打开文件失败:', error);
+        alert('打开文件失败: ' + error.message);
+      }
+    }
+
+    // 打开文件夹
+    function openFolder(folderPath) {
+      console.log('打开文件夹:', folderPath);
+      
+      try {
+        // 注意：在 contextIsolation: true 的情况下，渲染进程无法直接访问 fs 模块
+        // 这里需要通过与主进程通信来读取文件夹中的文件
+        window.electronAPI.readFolder(folderPath);
+        
+      } catch (error) {
+        console.error('打开文件夹失败:', error);
+        alert('打开文件夹失败: ' + error.message);
+      }
+    }
+
     // 初始化
     document.addEventListener('DOMContentLoaded', () => {
       setupEventListeners();
@@ -350,9 +428,13 @@
       createTab(note);
 
       // 加载笔记内容
-      // 这里需要通过与主进程通信来加载文件内容
-      document.getElementById('editor').value = '';
-      document.getElementById('preview').innerHTML = '';
+      // 通过与主进程通信来加载文件内容
+      if (note.filePath) {
+        window.electronAPI.readFile(note.filePath);
+      } else {
+        document.getElementById('editor').value = '';
+        document.getElementById('preview').innerHTML = '';
+      }
     }
 
     // 更新激活的笔记
@@ -558,20 +640,76 @@
 
       // 监听主进程消息
       if (window.electronAPI) {
-        window.electronAPI.onNewNote(() => createNewNote());
-        window.electronAPI.onSaveNote(() => saveNote());
-        window.electronAPI.onOpenFile((event, filePath) => {
-          // 这里需要实现打开文件的逻辑
-          console.log('打开文件:', filePath);
+        console.log('electronAPI 可用');
+        window.electronAPI.onNewNote(() => {
+          console.log('收到 new-note 事件');
+          createNewNote();
         });
-        window.electronAPI.onOpenFolder((event, folderPath) => {
-          // 这里需要实现打开文件夹的逻辑
-          console.log('打开文件夹:', folderPath);
+        window.electronAPI.onSaveNote(() => {
+          console.log('收到 save-note 事件');
+          saveNote();
         });
-        window.electronAPI.onSaveAs((event, filePath) => {
-          // 这里需要实现另存为的逻辑
-          console.log('另存为:', filePath);
+        window.electronAPI.onOpenFile((data) => {
+          console.log('收到 open-file 事件:', data);
+          try {
+            openFile(data);
+          } catch (error) {
+            console.error('调用 openFile 函数失败:', error);
+            alert('打开文件失败: ' + error.message);
+          }
         });
+        window.electronAPI.onOpenFolder((folderPath) => {
+          console.log('收到 open-folder 事件:', folderPath);
+          openFolder(folderPath);
+        });
+        window.electronAPI.onFolderFiles((files) => {
+          console.log('收到 folder-files 事件:', files);
+          // 清空现有的笔记列表
+          notes = [];
+          // 清空标签页
+          const tabs = document.getElementById('tabs');
+          tabs.innerHTML = '';
+          // 清空编辑器和预览区域
+          document.getElementById('editor').value = '';
+          document.getElementById('preview').innerHTML = '';
+          // 为每个文件创建一个笔记
+          files.forEach(filePath => {
+            try {
+              // 从文件路径提取文件名作为笔记标题
+              const fileName = filePath.split('\\').pop().split('/').pop().replace('.md', '');
+              const noteId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+              
+              // 创建新的笔记对象
+              // 生成保存在 data 目录下的 HTML 文件路径
+              const htmlFileName = `${fileName}.html`;
+              const htmlPath = `data/${htmlFileName}`;
+              
+              const newNote = {
+                id: noteId,
+                title: fileName,
+                filePath: filePath,
+                htmlPath: htmlPath
+              };
+              
+              // 添加到笔记列表
+              notes.push(newNote);
+            } catch (error) {
+              console.error('处理文件失败:', error);
+            }
+          });
+          // 更新笔记列表
+          updateNoteList();
+          // 打开第一篇笔记
+          if (notes.length > 0) {
+            // 读取第一篇笔记的内容
+            window.electronAPI.readFile(notes[0].filePath);
+          }
+        });
+        window.electronAPI.onSaveAs((filePath) => {
+          console.log('收到 save-as 事件:', filePath);
+        });
+      } else {
+        console.error('electronAPI 不可用');
       }
     }
   </script>

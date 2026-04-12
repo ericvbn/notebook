@@ -10,8 +10,11 @@ const indexFile = path.join(dataDir, 'index.json');
 // 设置应用的用户数据目录
 app.setPath('userData', dataDir);
 
-// 确保应用就绪
-app.whenReady().then(() => {
+// 全局变量
+let mainWindow;
+
+// 创建窗口函数
+function createWindow() {
   // 确保数据目录存在
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
@@ -23,7 +26,7 @@ app.whenReady().then(() => {
   }
 
   // 创建主窗口
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
@@ -44,10 +47,12 @@ app.whenReady().then(() => {
         {
           label: '新建',
           accelerator: 'CmdOrCtrl+N',
-          click: () => mainWindow.webContents.send('new-note')
+          click: () => {
+            console.log('发送 new-note 事件');
+            mainWindow.webContents.send('new-note');
+          }
         },
-        {
-          label: '打开文件',
+        {          label: '打开文件',
           accelerator: 'CmdOrCtrl+O',
           click: () => {
             dialog.showOpenDialog({
@@ -55,7 +60,26 @@ app.whenReady().then(() => {
               filters: [{ name: 'Markdown 文件', extensions: ['md'] }]
             }).then(result => {
               if (!result.canceled) {
-                mainWindow.webContents.send('open-file', result.filePaths[0]);
+                // 使用 path 模块处理文件路径，确保编码与系统一致
+                const filePath = path.resolve(result.filePaths[0]);
+                console.log('filePath:', filePath); 
+                
+                try {
+                  // 读取文件内容
+                  const content = fs.readFileSync(filePath, 'utf8');
+                  console.log('content:', content);
+                  // 发送文件路径和内容到渲染进程
+                  console.log('发送 open-file 事件');
+                  mainWindow.webContents.send('open-file', { filePath, content });
+                } catch (error) {
+                  console.error('读取文件失败:', error);
+                  dialog.showMessageBox({
+                    type: 'error',
+                    title: '错误',
+                    message: '读取文件失败',
+                    detail: error.message
+                  });
+                }
               }
             });
           }
@@ -68,6 +92,7 @@ app.whenReady().then(() => {
               properties: ['openDirectory']
             }).then(result => {
               if (!result.canceled) {
+                console.log('发送 open-folder 事件');
                 mainWindow.webContents.send('open-folder', result.filePaths[0]);
               }
             });
@@ -76,7 +101,10 @@ app.whenReady().then(() => {
         {
           label: '保存',
           accelerator: 'CmdOrCtrl+S',
-          click: () => mainWindow.webContents.send('save-note')
+          click: () => {
+            console.log('发送 save-note 事件');
+            mainWindow.webContents.send('save-note');
+          }
         },
         {
           label: '另存为',
@@ -86,6 +114,7 @@ app.whenReady().then(() => {
               filters: [{ name: 'Markdown 文件', extensions: ['md'] }]
             }).then(result => {
               if (!result.canceled) {
+                console.log('发送 save-as 事件');
                 mainWindow.webContents.send('save-as', result.filePath);
               }
             });
@@ -124,6 +153,70 @@ app.whenReady().then(() => {
 
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
+}
+
+// 确保应用就绪
+app.whenReady().then(() => {
+  createWindow();
+
+  // 处理保存 HTML 文件的请求
+  ipcMain.on('save-html-file', (event, data) => {
+    const { filePath, content } = data;
+    try {
+      // 确保 data 目录存在
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+      
+      // 解析文件路径，如果是相对路径，就相对于 data 目录
+      let fullPath;
+      if (path.isAbsolute(filePath)) {
+        fullPath = filePath;
+      } else {
+        // 如果 filePath 以 'data/' 开头，就使用绝对路径
+        if (filePath.startsWith('data/')) {
+          fullPath = path.join(appDataPath, filePath);
+        } else {
+          fullPath = path.join(dataDir, filePath);
+        }
+      }
+      
+      fs.writeFileSync(fullPath, content);
+      console.log('HTML 文件保存成功:', fullPath);
+    } catch (error) {
+      console.error('保存 HTML 文件失败:', error);
+    }
+  });
+
+  // 处理读取文件夹的请求
+  ipcMain.on('read-folder', (event, folderPath) => {
+    try {
+      // 读取文件夹中的文件
+      const files = fs.readdirSync(folderPath);
+      // 过滤出 Markdown 文件
+      const mdFiles = files.filter(file => file.endsWith('.md'));
+      // 构建文件路径数组
+      const filePaths = mdFiles.map(file => path.join(folderPath, file));
+      console.log('读取文件夹成功:', folderPath, filePaths);
+      // 发送文件列表到渲染进程
+      event.sender.send('folder-files', filePaths);
+    } catch (error) {
+      console.error('读取文件夹失败:', error);
+    }
+  });
+
+  // 处理读取文件的请求
+  ipcMain.on('read-file', (event, filePath) => {
+    try {
+      // 读取文件内容
+      const content = fs.readFileSync(filePath, 'utf8');
+      console.log('读取文件成功:', filePath);
+      // 发送文件内容到渲染进程
+      event.sender.send('open-file', { filePath, content });
+    } catch (error) {
+      console.error('读取文件失败:', error);
+    }
+  });
 
   // 处理应用激活
   app.on('activate', function () {
