@@ -1,0 +1,23 @@
+{
+  "name": "notebook",
+  "version": "1.0.0",
+  "description": "Electron 笔记软件",
+  "main": "index.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "electron",
+    "notebook",
+    "markdown",
+    "latex"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "electron": "^41.2.0",
+    "marked": "^11.2.0",
+    "katex": "^0.16.45"
+  }
+}

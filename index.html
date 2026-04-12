@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>笔记软件</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.45/dist/katex.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+    }
+
+    /* 侧边栏 */
+    .sidebar {
+      width: 250px;
+      background: #f5f5f5;
+      border-right: 1px solid #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      transition: width 0.3s ease;
+    }
+
+    .sidebar.collapsed {
+      width: 60px;
+    }
+
+    .sidebar-header {
+      padding: 15px;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .sidebar-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .toggle-sidebar {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      color: #666;
+    }
+
+    .note-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+    }
+
+    .note-item {
+      padding: 10px;
+      margin-bottom: 5px;
+      background: white;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      position: relative;
+    }
+
+    .note-item:hover {
+      background: #e3f2fd;
+    }
+
+    .note-item.active {
+      background: #bbdefb;
+    }
+
+    .note-item-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* 主内容区 */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 标签页 */
+    .tabs {
+      display: flex;
+      background: #f5f5f5;
+      border-bottom: 1px solid #e0e0e0;
+      overflow-x: auto;
+    }
+
+    .tab {
+      padding: 10px 15px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      position: relative;
+    }
+
+    .tab.active {
+      border-bottom-color: #2196f3;
+      background: white;
+    }
+
+    .tab-close {
+      margin-left: 10px;
+      font-size: 14px;
+      color: #999;
+      cursor: pointer;
+    }
+
+    .tab-close:hover {
+      color: #333;
+    }
+
+    /* 编辑区 */
+    .editor-container {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .editor {
+      flex: 1;
+      padding: 20px;
+      border: none;
+      resize: none;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .preview {
+      flex: 1;
+      padding: 20px;
+      border-left: 1px solid #e0e0e0;
+      overflow-y: auto;
+      background: white;
+    }
+
+    /* 标签相关样式 */
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #e3f2fd;
+      border-radius: 12px;
+      font-size: 12px;
+      margin-right: 5px;
+      margin-bottom: 5px;
+      cursor: pointer;
+    }
+
+    .tag:hover {
+      background: #bbdefb;
+    }
+
+    /* 右键菜单 */
+    .context-menu {
+      position: fixed;
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      z-index: 1000;
+      display: none;
+    }
+
+    .context-menu-item {
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .context-menu-item:hover {
+      background: #f5f5f5;
+    }
+
+    /* 标签列表页面 */
+    .tag-list-page {
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .tag-content-block {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      position: relative;
+    }
+
+    .tag-content-block:hover {
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .block-actions {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: none;
+    }
+
+    .tag-content-block:hover .block-actions {
+      display: block;
+    }
+
+    .action-button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      margin-left: 5px;
+      color: #666;
+    }
+
+    .action-button:hover {
+      color: #333;
+    }
+
+    /* 合成按钮 */
+    .compose-button {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #2196f3;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 56px;
+      height: 56px;
+      font-size: 24px;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+
+    .compose-button:hover {
+      background: #1976d2;
+    }
+  </style>
+</head>
+<body>
+  <!-- 侧边栏 -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title" id="sidebar-title">笔记</div>
+      <button class="toggle-sidebar" id="toggle-sidebar">≡</button>
+    </div>
+    <div class="note-list" id="note-list">
+      <!-- 笔记列表将通过 JavaScript 动态生成 -->
+    </div>
+  </div>
+
+  <!-- 主内容区 -->
+  <div class="main-content">
+    <!-- 标签页 -->
+    <div class="tabs" id="tabs">
+      <!-- 标签页将通过 JavaScript 动态生成 -->
+    </div>
+
+    <!-- 编辑区 -->
+    <div class="editor-container" id="editor-container">
+      <textarea class="editor" id="editor" placeholder="开始编写笔记..."></textarea>
+      <div class="preview" id="preview"></div>
+    </div>
+  </div>
+
+  <!-- 右键菜单 -->
+  <div class="context-menu" id="context-menu">
+    <div class="context-menu-item" id="add-tag">添加标签</div>
+    <div class="context-menu-item" id="remove-tag">删除标签</div>
+    <div class="context-menu-item" id="delete-note">删除笔记</div>
+  </div>
+
+  <!-- 合成按钮 -->
+  <button class="compose-button" id="compose-button" title="合成笔记">+</button>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.45/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.45/dist/contrib/auto-render.min.js"></script>
+  <script>
+    // 全局变量
+    let notes = [];
+    let currentNote = null;
+    let currentTab = null;
+    let sidebarCollapsed = false;
+    let selectedText = '';
+    let selectedElement = null;
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      setupEventListeners();
+      // 初始化应用逻辑将通过与主进程通信实现
+    });
+
+    // 更新笔记列表
+    function updateNoteList() {
+      const noteList = document.getElementById('note-list');
+      noteList.innerHTML = '';
+
+      notes.forEach(note => {
+        const noteItem = document.createElement('div');
+        noteItem.className = 'note-item';
+        noteItem.dataset.id = note.id;
+        noteItem.innerHTML = `<div class="note-item-title">${note.title}</div>`;
+        
+        noteItem.addEventListener('click', () => {
+          openNote(note);
+        });
+
+        noteList.appendChild(noteItem);
+      });
+    }
+
+    // 创建新笔记
+    function createNewNote() {
+      const noteId = Date.now().toString();
+      const noteTitle = `新笔记-${notes.length + 1}`;
+
+      const newNote = {
+        id: noteId,
+        title: noteTitle,
+        filePath: '',
+        htmlPath: ''
+      };
+
+      notes.push(newNote);
+      openNote(newNote);
+      updateNoteList();
+    }
+
+    // 打开笔记
+    function openNote(note) {
+      currentNote = note;
+      updateActiveNote();
+      createTab(note);
+
+      // 加载笔记内容
+      // 这里需要通过与主进程通信来加载文件内容
+      document.getElementById('editor').value = '';
+      document.getElementById('preview').innerHTML = '';
+    }
+
+    // 更新激活的笔记
+    function updateActiveNote() {
+      document.querySelectorAll('.note-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.id === currentNote.id) {
+          item.classList.add('active');
+        }
+      });
+    }
+
+    // 创建标签页
+    function createTab(note) {
+      const tabs = document.getElementById('tabs');
+      const existingTab = document.querySelector(`.tab[data-id="${note.id}"]`);
+
+      if (existingTab) {
+        // 激活现有标签页
+        document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+        existingTab.classList.add('active');
+        currentTab = note.id;
+      } else {
+        // 创建新标签页
+        const tab = document.createElement('div');
+        tab.className = 'tab active';
+        tab.dataset.id = note.id;
+        tab.innerHTML = `${note.title} <span class="tab-close">×</span>`;
+
+        // 激活当前标签页
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentTab = note.id;
+
+        // 标签页点击事件
+        tab.addEventListener('click', (e) => {
+          if (!e.target.classList.contains('tab-close')) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            currentTab = note.id;
+            openNote(note);
+          }
+        });
+
+        // 关闭标签页
+        tab.querySelector('.tab-close').addEventListener('click', (e) => {
+          e.stopPropagation();
+          tab.remove();
+          if (currentTab === note.id) {
+            const remainingTabs = document.querySelectorAll('.tab');
+            if (remainingTabs.length > 0) {
+              const firstTab = remainingTabs[0];
+              firstTab.click();
+            }
+          }
+        });
+
+        tabs.appendChild(tab);
+      }
+    }
+
+    // 保存笔记
+    function saveNote() {
+      if (!currentNote) return;
+
+      const content = document.getElementById('editor').value;
+      const title = currentNote.title;
+
+      // 这里需要通过与主进程通信来保存文件
+      console.log('保存笔记:', title);
+    }
+
+    // 生成 HTML 内容
+    function generateHtml(content, title) {
+      return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+</head>
+<body>
+  <h1>${title}</h1>
+  <div data-tag="${title}">${marked.parse(content)}</div>
+</body>
+</html>`;
+    }
+
+    // 初始化应用
+    function initializeApp() {
+      // 这里不进行文件系统操作，避免沙箱限制
+      // 实际的文件操作将通过与主进程通信实现
+      createNewNote();
+    }
+
+    // 页面加载完成后初始化
+    window.onload = function() {
+      initializeApp();
+    };
+
+    // 渲染预览
+    function renderPreview(content) {
+      const preview = document.getElementById('preview');
+      const html = marked.parse(content);
+      preview.innerHTML = html;
+      
+      // 渲染 LaTeX
+      renderMathInElement(preview, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '$', right: '$', display: false }
+        ]
+      });
+    }
+
+    // 设置事件监听器
+    function setupEventListeners() {
+      // 编辑器变化
+      const editor = document.getElementById('editor');
+      editor.addEventListener('input', () => {
+        const content = editor.value;
+        renderPreview(content);
+      });
+
+      // 侧边栏切换
+      document.getElementById('toggle-sidebar').addEventListener('click', () => {
+        const sidebar = document.getElementById('sidebar');
+        const sidebarTitle = document.getElementById('sidebar-title');
+        sidebarCollapsed = !sidebarCollapsed;
+        
+        if (sidebarCollapsed) {
+          sidebar.classList.add('collapsed');
+          sidebarTitle.style.display = 'none';
+        } else {
+          sidebar.classList.remove('collapsed');
+          sidebarTitle.style.display = 'block';
+        }
+      });
+
+      // 右键菜单
+      document.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        
+        // 检查是否选中了文本
+        selectedText = window.getSelection().toString();
+        if (selectedText) {
+          const contextMenu = document.getElementById('context-menu');
+          contextMenu.style.display = 'block';
+          contextMenu.style.left = e.clientX + 'px';
+          contextMenu.style.top = e.clientY + 'px';
+        }
+      });
+
+      // 点击空白处关闭右键菜单
+      document.addEventListener('click', () => {
+        document.getElementById('context-menu').style.display = 'none';
+      });
+
+      // 添加标签
+      document.getElementById('add-tag').addEventListener('click', () => {
+        const tag = prompt('请输入标签名称:');
+        if (tag) {
+          // 这里需要实现添加标签的逻辑
+          console.log('添加标签:', tag);
+        }
+      });
+
+      // 删除标签
+      document.getElementById('remove-tag').addEventListener('click', () => {
+        // 这里需要实现删除标签的逻辑
+        console.log('删除标签');
+      });
+
+      // 删除笔记
+      document.getElementById('delete-note').addEventListener('click', () => {
+        if (currentNote) {
+          if (confirm('确定要删除这篇笔记吗？')) {
+            // 这里需要通过与主进程通信来删除文件
+            notes = notes.filter(note => note.id !== currentNote.id);
+            updateNoteList();
+
+            // 关闭标签页
+            const tab = document.querySelector(`.tab[data-id="${currentNote.id}"]`);
+            if (tab) {
+              tab.remove();
+            }
+
+            // 打开第一篇笔记
+            if (notes.length > 0) {
+              openNote(notes[0]);
+            } else {
+              createNewNote();
+            }
+          }
+        }
+      });
+
+      // 合成按钮
+      document.getElementById('compose-button').addEventListener('click', () => {
+        // 这里需要实现合成笔记的逻辑
+        console.log('合成笔记');
+      });
+
+      // 监听主进程消息
+      if (window.electronAPI) {
+        window.electronAPI.onNewNote(() => createNewNote());
+        window.electronAPI.onSaveNote(() => saveNote());
+        window.electronAPI.onOpenFile((event, filePath) => {
+          // 这里需要实现打开文件的逻辑
+          console.log('打开文件:', filePath);
+        });
+        window.electronAPI.onOpenFolder((event, folderPath) => {
+          // 这里需要实现打开文件夹的逻辑
+          console.log('打开文件夹:', folderPath);
+        });
+        window.electronAPI.onSaveAs((event, filePath) => {
+          // 这里需要实现另存为的逻辑
+          console.log('另存为:', filePath);
+        });
+      }
+    }
+  </script>
+</body>
+</html>
