@@ -152,6 +152,72 @@
       background: white;
     }
 
+    /* 欢迎框 */
+    .welcome-box {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 40px;
+    }
+
+    .welcome-box.hidden {
+      display: none;
+    }
+
+    .welcome-icon {
+      font-size: 80px;
+      margin-bottom: 20px;
+    }
+
+    .welcome-title {
+      font-size: 36px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .welcome-subtitle {
+      font-size: 18px;
+      margin-bottom: 40px;
+      opacity: 0.9;
+    }
+
+    .welcome-buttons {
+      display: flex;
+      gap: 20px;
+    }
+
+    .welcome-button {
+      padding: 15px 30px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .welcome-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+
+    .welcome-button.primary {
+      background: white;
+      color: #667eea;
+    }
+
+    .welcome-button.secondary {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 2px solid white;
+    }
+
     /* 标签相关样式 */
     .tag {
       display: inline-block;
@@ -169,27 +235,98 @@
     }
 
     /* 右键菜单 */
-    .context-menu {
-      position: fixed;
-      background: white;
-      border: 1px solid #e0e0e0;
-      border-radius: 4px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      z-index: 1000;
-      display: none;
-    }
+  .context-menu {
+    position: fixed;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+    display: none;
+  }
 
-    .context-menu-item {
-      padding: 8px 12px;
-      cursor: pointer;
-      font-size: 14px;
-    }
+  .context-menu-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+  }
 
-    .context-menu-item:hover {
-      background: #f5f5f5;
-    }
+  .context-menu-item:hover {
+    background: #f5f5f5;
+  }
 
-    /* 标签列表页面 */
+  /* 模态框样式 */
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    display: none;
+  }
+  
+  .modal-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    width: 400px;
+    max-width: 90%;
+  }
+  
+  .modal-content h3 {
+    margin-top: 0;
+    color: #333;
+  }
+  
+  .modal-content input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+  }
+  
+  .modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+  }
+  
+  .modal-buttons button {
+    padding: 8px 16px;
+    margin-left: 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  
+  #tag-confirm {
+    background-color: #4CAF50;
+    color: white;
+  }
+  
+  #tag-cancel {
+    background-color: #f44336;
+    color: white;
+  }
+  
+  #tag-confirm:hover {
+    background-color: #45a049;
+  }
+  
+  #tag-cancel:hover {
+    background-color: #da190b;
+  }
+
+  /* 标签列表页面 */
     .tag-list-page {
       padding: 20px;
       overflow-y: auto;
@@ -274,8 +411,28 @@
 
     <!-- 编辑区 -->
     <div class="editor-container" id="editor-container">
-      <textarea class="editor" id="editor" placeholder="开始编写笔记..."></textarea>
-      <div class="preview" id="preview"></div>
+      <!-- 欢迎框 -->
+      <div class="welcome-box hidden" id="welcome-box">
+        <div class="welcome-icon">📝</div>
+        <div class="welcome-title">笔记软件</div>
+        <div class="welcome-subtitle">简单、高效、专注的笔记管理</div>
+        <div class="welcome-buttons">
+          <button class="welcome-button primary" id="welcome-new-note">
+            📄 新建笔记
+          </button>
+          <button class="welcome-button secondary" id="welcome-open-file">
+            📂 打开文件
+          </button>
+          <button class="welcome-button secondary" id="welcome-open-folder">
+            📁 打开文件夹
+          </button>
+        </div>
+      </div>
+      <!-- 编辑器和预览区 -->
+      <div id="editor-preview-container" style="display: flex; flex: 1;">
+        <textarea class="editor" id="editor" placeholder="开始编写笔记..."></textarea>
+        <div class="preview" id="preview"></div>
+      </div>
     </div>
   </div>
 
@@ -284,6 +441,18 @@
     <div class="context-menu-item" id="add-tag">添加标签</div>
     <div class="context-menu-item" id="remove-tag">删除标签</div>
     <div class="context-menu-item" id="delete-note">删除笔记</div>
+  </div>
+
+  <!-- 标签输入模态框 -->
+  <div id="tag-modal" class="modal">
+    <div class="modal-content">
+      <h3>添加标签</h3>
+      <input type="text" id="tag-input" placeholder="请输入标签名称">
+      <div class="modal-buttons">
+        <button id="tag-confirm">确定</button>
+        <button id="tag-cancel">取消</button>
+      </div>
+    </div>
   </div>
 
   <!-- 合成按钮 -->
@@ -311,6 +480,10 @@
       console.log('content:', content);
 
       try {
+        // 隐藏欢迎框，显示编辑器预览容器
+        document.getElementById('welcome-box').classList.add('hidden');
+        document.getElementById('editor-preview-container').style.display = 'flex';
+        
         // 从文件路径提取文件名作为笔记标题（当作字符串处理）
         const fileName = filePath.split('\\').pop().split('/').pop().replace('.md', '');
         
@@ -335,7 +508,8 @@
             id: noteId,
             title: fileName,
             filePath: filePath,
-            htmlPath: htmlPath
+            htmlPath: htmlPath,
+            tags: [] // 初始化标签数组
           };
           
           // 添加到笔记列表
@@ -350,10 +524,21 @@
         
         // 加载文件内容到编辑器
         document.getElementById('editor').value = content;
-        renderPreview(content);
+        
+        // 渲染预览
+        if (currentNote.tags && currentNote.tags.length > 0) {
+          renderPreviewWithTags(content, currentNote.tags);
+        } else {
+          renderPreview(content);
+        }
         
         // 生成对应的 HTML 文件
-        const htmlContent = generateHtml(content, fileName);
+        let htmlContent;
+        if (currentNote.tags && currentNote.tags.length > 0) {
+          htmlContent = generateHtmlWithTags(content, currentNote.tags, fileName);
+        } else {
+          htmlContent = generateHtml(content, fileName);
+        }
         // 注意：在 contextIsolation: true 的情况下，渲染进程无法直接访问 fs 模块
         // 这里需要通过与主进程通信来保存 HTML 文件
         window.electronAPI.saveHtmlFile(currentNote.htmlPath, htmlContent);
@@ -406,6 +591,10 @@
 
     // 创建新笔记
     function createNewNote() {
+      // 隐藏欢迎框，显示编辑器预览容器
+      document.getElementById('welcome-box').classList.add('hidden');
+      document.getElementById('editor-preview-container').style.display = 'flex';
+      
       const noteId = Date.now().toString();
       const noteTitle = `新笔记-${notes.length + 1}`;
 
@@ -423,6 +612,10 @@
 
     // 打开笔记
     function openNote(note) {
+      // 隐藏欢迎框，显示编辑器预览容器
+      document.getElementById('welcome-box').classList.add('hidden');
+      document.getElementById('editor-preview-container').style.display = 'flex';
+      
       currentNote = note;
       updateActiveNote();
       createTab(note);
@@ -462,7 +655,7 @@
         const tab = document.createElement('div');
         tab.className = 'tab active';
         tab.dataset.id = note.id;
-        tab.innerHTML = `${note.title} <span class="tab-close">×</span>`;
+        tab.innerHTML = `<span class="tab-text">${note.title}</span> <span class="tab-close">×</span>`;
 
         // 激活当前标签页
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -482,12 +675,24 @@
         // 关闭标签页
         tab.querySelector('.tab-close').addEventListener('click', (e) => {
           e.stopPropagation();
+          const wasCurrentTab = currentTab === note.id;
           tab.remove();
-          if (currentTab === note.id) {
+          
+          // 从笔记列表中移除该笔记
+          notes = notes.filter(n => n.id !== note.id);
+          updateNoteList();
+          
+          if (wasCurrentTab) {
             const remainingTabs = document.querySelectorAll('.tab');
             if (remainingTabs.length > 0) {
               const firstTab = remainingTabs[0];
               firstTab.click();
+            } else {
+              // 最后一个标签页被删除，显示欢迎框
+              currentNote = null;
+              currentTab = null;
+              document.getElementById('welcome-box').classList.remove('hidden');
+              document.getElementById('editor-preview-container').style.display = 'none';
             }
           }
         });
@@ -503,8 +708,93 @@
       const content = document.getElementById('editor').value;
       const title = currentNote.title;
 
-      // 这里需要通过与主进程通信来保存文件
-      console.log('保存笔记:', title);
+      if (currentNote.filePath) {
+        // 有文件路径，直接保存
+        window.electronAPI.saveNoteFile(currentNote.filePath, content, title);
+        
+        // 生成并保存带有标签的 HTML 文件
+        if (currentNote.tags && currentNote.tags.length > 0) {
+          const htmlContent = generateHtmlWithTags(content, currentNote.tags, title);
+          if (currentNote.htmlPath) {
+            window.electronAPI.saveHtmlFile(currentNote.htmlPath, htmlContent);
+          }
+        }
+      } else {
+        // 没有文件路径，直接保存到 data/newNote 目录
+        const timestamp = Date.now();
+        const fileName = `新笔记-${timestamp}.md`;
+        const filePath = `data/newNote/${fileName}`;
+        window.electronAPI.saveNoteFile(filePath, content, title);
+        // 更新笔记的文件路径
+        currentNote.filePath = filePath;
+        // 提取文件名（不包含扩展名）
+        const fileNameWithoutExt = fileName.replace('.md', '');
+        currentNote.htmlPath = `data/${fileNameWithoutExt}.html`;
+        // 更新笔记标题为文件名
+        currentNote.title = fileNameWithoutExt;
+        // 更新标签页标题
+        const tab = document.querySelector(`.tab[data-id="${currentNote.id}"]`);
+        if (tab) {
+          // 只更新标签页标题文本，保留关闭按钮
+          const tabText = tab.querySelector('.tab-text');
+          if (tabText) {
+            tabText.textContent = fileNameWithoutExt;
+          } else {
+            // 如果没有 .tab-text 元素，重新创建标签页内容并重新绑定事件
+            const newTab = document.createElement('div');
+            newTab.className = 'tab active';
+            newTab.dataset.id = currentNote.id;
+            newTab.innerHTML = `<span class="tab-text">${fileNameWithoutExt}</span> <span class="tab-close">×</span>`;
+            
+            // 标签页点击事件
+            newTab.addEventListener('click', (e) => {
+              if (!e.target.classList.contains('tab-close')) {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                newTab.classList.add('active');
+                currentTab = currentNote.id;
+                openNote(currentNote);
+              }
+            });
+            
+            // 关闭标签页
+            newTab.querySelector('.tab-close').addEventListener('click', (e) => {
+              e.stopPropagation();
+              const wasCurrentTab = currentTab === currentNote.id;
+              newTab.remove();
+              
+              // 从笔记列表中移除该笔记
+              notes = notes.filter(n => n.id !== currentNote.id);
+              updateNoteList();
+              
+              if (wasCurrentTab) {
+                const remainingTabs = document.querySelectorAll('.tab');
+                if (remainingTabs.length > 0) {
+                  const firstTab = remainingTabs[0];
+                  firstTab.click();
+                } else {
+                  // 最后一个标签页被删除，显示欢迎框
+                  currentNote = null;
+                  currentTab = null;
+                  document.getElementById('welcome-box').classList.remove('hidden');
+                  document.getElementById('editor-preview-container').style.display = 'none';
+                }
+              }
+            });
+            
+            // 替换旧标签页
+            tab.parentNode.replaceChild(newTab, tab);
+          }
+        }
+        updateNoteList();
+        
+        // 生成并保存带有标签的 HTML 文件
+        if (currentNote.tags && currentNote.tags.length > 0) {
+          const htmlContent = generateHtmlWithTags(content, currentNote.tags, title);
+          if (currentNote.htmlPath) {
+            window.electronAPI.saveHtmlFile(currentNote.htmlPath, htmlContent);
+          }
+        }
+      }
     }
 
     // 生成 HTML 内容
@@ -522,12 +812,96 @@
 </body>
 </html>`;
     }
+    
+    // 生成带有标签的 HTML 内容
+    function generateHtmlWithTags(content, tags, title) {
+      let html = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+</head>
+<body>
+  <h1>${title}</h1>`;
+      
+      // 按起始位置排序标签
+      const sortedTags = [...tags].sort((a, b) => a.start - b.start);
+      
+      let lastIndex = 0;
+      sortedTags.forEach(tagInfo => {
+        // 添加标签前的内容
+        html += marked.parse(content.substring(lastIndex, tagInfo.start));
+        
+        // 添加带有标签的内容
+        html += `<div data-tag="${tagInfo.tag}">${marked.parse(tagInfo.text)}</div>`;
+        
+        lastIndex = tagInfo.end;
+      });
+      
+      // 添加剩余内容
+      html += marked.parse(content.substring(lastIndex));
+      html += `</body>
+</html>`;
+      
+      return html;
+    }
+    
+    // 渲染预览
+    function renderPreview(content) {
+      const preview = document.getElementById('preview');
+      const html = marked.parse(content);
+      preview.innerHTML = html;
+      
+      // 渲染 LaTeX 公式
+      renderMathInElement(preview, {
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "$", right: "$", display: false }
+        ],
+        throwOnError: false
+      });
+    }
+    
+    // 渲染带有标签的预览
+    function renderPreviewWithTags(content, tags) {
+      const preview = document.getElementById('preview');
+      
+      // 按起始位置排序标签
+      const sortedTags = [...tags].sort((a, b) => a.start - b.start);
+      
+      let html = '';
+      let lastIndex = 0;
+      sortedTags.forEach(tagInfo => {
+        // 添加标签前的内容
+        html += marked.parse(content.substring(lastIndex, tagInfo.start));
+        
+        // 添加带有标签的内容
+        html += `<div data-tag="${tagInfo.tag}" style="background-color: #e3f2fd; padding: 5px; margin: 5px 0; border-radius: 4px;">${marked.parse(tagInfo.text)}</div>`;
+        
+        lastIndex = tagInfo.end;
+      });
+      
+      // 添加剩余内容
+      html += marked.parse(content.substring(lastIndex));
+      
+      preview.innerHTML = html;
+      
+      // 渲染 LaTeX 公式
+      renderMathInElement(preview, {
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "$", right: "$", display: false }
+        ],
+        throwOnError: false
+      });
+    }
 
     // 初始化应用
     function initializeApp() {
       // 这里不进行文件系统操作，避免沙箱限制
       // 实际的文件操作将通过与主进程通信实现
-      createNewNote();
+      // 不自动创建新笔记，等待主进程发送 newNote 目录的文件列表
     }
 
     // 页面加载完成后初始化
@@ -576,36 +950,149 @@
 
       // 右键菜单
       document.addEventListener('contextmenu', (e) => {
+        console.log('右键菜单事件触发');
         e.preventDefault();
         
-        // 检查是否选中了文本
-        selectedText = window.getSelection().toString();
-        if (selectedText) {
+        // 检查是否在编辑器中右键点击
+        const editor = document.getElementById('editor');
+        let hasSelection = false;
+        
+        if (e.target === editor || editor.contains(e.target)) {
+          // 在编辑器中，获取编辑器的选中文本
+          selectedText = editor.value.substring(editor.selectionStart, editor.selectionEnd);
+          hasSelection = selectedText.length > 0;
+          console.log('在编辑器中右键点击，选中的文本:', selectedText);
+        } else {
+          // 在其他地方，使用 window.getSelection()
+          selectedText = window.getSelection().toString();
+          hasSelection = selectedText.length > 0;
+          console.log('在编辑器外右键点击，选中的文本:', selectedText);
+        }
+        
+        console.log('是否有选中的文本:', hasSelection);
+        if (hasSelection) {
           const contextMenu = document.getElementById('context-menu');
+          console.log('显示右键菜单');
           contextMenu.style.display = 'block';
           contextMenu.style.left = e.clientX + 'px';
           contextMenu.style.top = e.clientY + 'px';
+          
+          // 阻止事件冒泡，防止右键菜单被关闭
+          e.stopPropagation();
         }
       });
 
       // 点击空白处关闭右键菜单
-      document.addEventListener('click', () => {
-        document.getElementById('context-menu').style.display = 'none';
+      document.addEventListener('click', (e) => {
+        const contextMenu = document.getElementById('context-menu');
+        const editor = document.getElementById('editor');
+        
+        // 检查点击是否在右键菜单或编辑器内
+        if (!contextMenu.contains(e.target) && e.target !== editor && !editor.contains(e.target)) {
+          console.log('关闭右键菜单');
+          contextMenu.style.display = 'none';
+        }
       });
 
       // 添加标签
       document.getElementById('add-tag').addEventListener('click', () => {
-        const tag = prompt('请输入标签名称:');
-        if (tag) {
-          // 这里需要实现添加标签的逻辑
+        console.log('添加标签按钮点击');
+        // 显示标签输入模态框
+        const tagModal = document.getElementById('tag-modal');
+        const tagInput = document.getElementById('tag-input');
+        tagInput.value = ''; // 清空输入框
+        tagModal.style.display = 'flex';
+        tagInput.focus(); // 聚焦输入框
+        
+        // 关闭右键菜单
+        document.getElementById('context-menu').style.display = 'none';
+      });
+      
+      // 标签输入模态框 - 确定按钮
+      document.getElementById('tag-confirm').addEventListener('click', () => {
+        const tagInput = document.getElementById('tag-input');
+        const tag = tagInput.value.trim();
+        console.log('用户输入的标签:', tag);
+        if (tag && currentNote) {
+          // 实现添加标签的逻辑
           console.log('添加标签:', tag);
+          
+          // 获取编辑器内容
+          const editor = document.getElementById('editor');
+          const content = editor.value;
+          const selectionStart = editor.selectionStart;
+          const selectionEnd = editor.selectionEnd;
+          console.log('编辑器选中文本范围:', selectionStart, selectionEnd);
+          
+          // 获取选中的文本
+          const selectedText = content.substring(selectionStart, selectionEnd);
+          console.log('编辑器中选中的文本:', selectedText);
+          
+          // 保存标签信息到笔记对象
+          if (!currentNote.tags) {
+            currentNote.tags = [];
+          }
+          currentNote.tags.push({
+            text: selectedText,
+            tag: tag,
+            start: selectionStart,
+            end: selectionEnd
+          });
+          
+          // 生成并保存 HTML 文件
+          const htmlContent = generateHtmlWithTags(content, currentNote.tags, currentNote.title);
+          if (currentNote.htmlPath) {
+            window.electronAPI.saveHtmlFile(currentNote.htmlPath, htmlContent);
+          }
+          
+          // 更新预览
+          renderPreviewWithTags(content, currentNote.tags);
+          
+          console.log('添加标签完成');
+        }
+        
+        // 关闭模态框
+        document.getElementById('tag-modal').style.display = 'none';
+      });
+      
+      // 标签输入模态框 - 取消按钮
+      document.getElementById('tag-cancel').addEventListener('click', () => {
+        // 关闭模态框
+        document.getElementById('tag-modal').style.display = 'none';
+      });
+      
+      // 点击模态框外部关闭模态框
+      document.getElementById('tag-modal').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('tag-modal')) {
+          document.getElementById('tag-modal').style.display = 'none';
         }
       });
 
       // 删除标签
       document.getElementById('remove-tag').addEventListener('click', () => {
-        // 这里需要实现删除标签的逻辑
+        // 实现删除标签的逻辑
         console.log('删除标签');
+        
+        // 获取编辑器内容
+        const editor = document.getElementById('editor');
+        const content = editor.value;
+        const selectionStart = editor.selectionStart;
+        const selectionEnd = editor.selectionEnd;
+        
+        // 检查选中的文本是否包含标签
+        const selectedText = content.substring(selectionStart, selectionEnd);
+        const tagRegex = /<span data-tag="[^"]+">(.*?)<\/span>/g;
+        const untaggedText = selectedText.replace(tagRegex, '$1');
+        
+        // 如果有标签被删除，更新编辑器内容
+        if (untaggedText !== selectedText) {
+          const newContent = content.substring(0, selectionStart) + untaggedText + content.substring(selectionEnd);
+          editor.value = newContent;
+          renderPreview(newContent);
+        }
+        
+        // 关闭右键菜单
+        document.getElementById('context-menu').style.display = 'none';
       });
 
       // 删除笔记
@@ -636,6 +1123,17 @@
       document.getElementById('compose-button').addEventListener('click', () => {
         // 这里需要实现合成笔记的逻辑
         console.log('合成笔记');
+      });
+
+      // 欢迎框按钮
+      document.getElementById('welcome-new-note').addEventListener('click', () => {
+        createNewNote();
+      });
+      document.getElementById('welcome-open-file').addEventListener('click', () => {
+        window.electronAPI.requestOpenFile();
+      });
+      document.getElementById('welcome-open-folder').addEventListener('click', () => {
+        window.electronAPI.requestOpenFolder();
       });
 
       // 监听主进程消息
@@ -699,14 +1197,88 @@
           });
           // 更新笔记列表
           updateNoteList();
-          // 打开第一篇笔记
+          // 打开第一篇笔记或显示欢迎框
           if (notes.length > 0) {
+            // 隐藏欢迎框，显示编辑器预览容器
+            document.getElementById('welcome-box').classList.add('hidden');
+            document.getElementById('editor-preview-container').style.display = 'flex';
             // 读取第一篇笔记的内容
             window.electronAPI.readFile(notes[0].filePath);
+          } else {
+            // 显示欢迎框，隐藏编辑器预览容器
+            document.getElementById('welcome-box').classList.remove('hidden');
+            document.getElementById('editor-preview-container').style.display = 'none';
           }
         });
         window.electronAPI.onSaveAs((filePath) => {
           console.log('收到 save-as 事件:', filePath);
+          if (currentNote) {
+            const content = document.getElementById('editor').value;
+            const title = currentNote.title;
+            // 保存文件
+            window.electronAPI.saveNoteFile(filePath, content, title);
+            // 更新笔记的文件路径
+            currentNote.filePath = filePath;
+            // 提取文件名（不包含扩展名）
+            const fileName = filePath.split('\\').pop().split('/').pop().replace('.md', '');
+            currentNote.htmlPath = `data/${fileName}.html`;
+            // 更新笔记标题为文件名
+            currentNote.title = fileName;
+            // 更新标签页标题
+            const tab = document.querySelector(`.tab[data-id="${currentNote.id}"]`);
+            if (tab) {
+              // 只更新标签页标题文本，保留关闭按钮
+              const tabText = tab.querySelector('.tab-text');
+              if (tabText) {
+                tabText.textContent = fileName;
+              } else {
+                // 如果没有 .tab-text 元素，重新创建标签页内容并重新绑定事件
+                const newTab = document.createElement('div');
+                newTab.className = 'tab active';
+                newTab.dataset.id = currentNote.id;
+                newTab.innerHTML = `<span class="tab-text">${fileName}</span> <span class="tab-close">×</span>`;
+                
+                // 标签页点击事件
+                newTab.addEventListener('click', (e) => {
+                  if (!e.target.classList.contains('tab-close')) {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    newTab.classList.add('active');
+                    currentTab = currentNote.id;
+                    openNote(currentNote);
+                  }
+                });
+                
+                // 关闭标签页
+                newTab.querySelector('.tab-close').addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  const wasCurrentTab = currentTab === currentNote.id;
+                  newTab.remove();
+                  
+                  // 从笔记列表中移除该笔记
+                  notes = notes.filter(n => n.id !== currentNote.id);
+                  updateNoteList();
+                  
+                  if (wasCurrentTab) {
+                    const remainingTabs = document.querySelectorAll('.tab');
+                    if (remainingTabs.length > 0) {
+                      const firstTab = remainingTabs[0];
+                      firstTab.click();
+                    } else {
+                      // 最后一个标签页被删除，显示欢迎框
+                      currentNote = null;
+                      currentTab = null;
+                      document.getElementById('welcome-box').classList.remove('hidden');
+                      document.getElementById('editor-preview-container').style.display = 'none';
+                    }
+                  }
+                });
+                
+                // 替换旧标签页
+                tab.parentNode.replaceChild(newTab, tab);
+              }
+            }
+            updateNoteList();
+          }
         });
       } else {
         console.error('electronAPI 不可用');

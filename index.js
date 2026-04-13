@@ -155,9 +155,74 @@ function createWindow() {
   Menu.setApplicationMenu(menu);
 }
 
+// 生成 HTML 内容
+function generateHtml(content, title) {
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+</head>
+<body>
+  <h1>${title}</h1>
+  <div data-tag="${title}">${content}</div>
+</body>
+</html>`;
+}
+
 // 确保应用就绪
 app.whenReady().then(() => {
   createWindow();
+
+  // 应用启动时读取 newNote 目录
+  const newNoteDir = path.join(dataDir, 'newNote');
+  if (fs.existsSync(newNoteDir)) {
+    try {
+      // 读取目录中的文件
+      const files = fs.readdirSync(newNoteDir);
+      // 过滤出 Markdown 文件
+      const mdFiles = files.filter(file => file.endsWith('.md'));
+      // 构建文件路径数组
+      const filePaths = mdFiles.map(file => path.join(newNoteDir, file));
+      console.log('读取 newNote 目录成功:', newNoteDir, filePaths);
+      // 发送文件列表到渲染进程
+      setTimeout(() => {
+        mainWindow.webContents.send('folder-files', filePaths);
+      }, 1000); // 延迟发送，确保窗口已完全加载
+    } catch (error) {
+      console.error('读取 newNote 目录失败:', error);
+    }
+  }
+
+  // 处理渲染进程请求打开文件
+  ipcMain.on('request-open-file', () => {
+    dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [{ name: 'Markdown 文件', extensions: ['md'] }]
+    }).then(result => {
+      if (!result.canceled) {
+        const filePath = path.resolve(result.filePaths[0]);
+        try {
+          const content = fs.readFileSync(filePath, 'utf8');
+          mainWindow.webContents.send('open-file', { filePath, content });
+        } catch (error) {
+          console.error('读取文件失败:', error);
+        }
+      }
+    });
+  });
+
+  // 处理渲染进程请求打开文件夹
+  ipcMain.on('request-open-folder', () => {
+    dialog.showOpenDialog({
+      properties: ['openDirectory']
+    }).then(result => {
+      if (!result.canceled) {
+        mainWindow.webContents.send('open-folder', result.filePaths[0]);
+      }
+    });
+  });
 
   // 处理保存 HTML 文件的请求
   ipcMain.on('save-html-file', (event, data) => {
@@ -216,6 +281,66 @@ app.whenReady().then(() => {
     } catch (error) {
       console.error('读取文件失败:', error);
     }
+  });
+
+  // 处理保存笔记文件的请求
+  ipcMain.on('save-note-file', (event, data) => {
+    const { filePath, content, title } = data;
+    try {
+      // 解析文件路径
+      let fullPath;
+      if (path.isAbsolute(filePath)) {
+        fullPath = filePath;
+      } else {
+        // 如果是相对路径，相对于应用数据目录
+        fullPath = path.join(appDataPath, filePath);
+      }
+      
+      // 确保文件所在目录存在
+      const dirPath = path.dirname(fullPath);
+      if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
+      }
+      
+      // 保存 Markdown 文件
+      fs.writeFileSync(fullPath, content);
+      console.log('Markdown 文件保存成功:', fullPath);
+      
+      // 生成并保存 HTML 文件
+      const htmlContent = generateHtml(content, title);
+      const htmlPath = path.join(dataDir, `${path.basename(fullPath, '.md')}.html`);
+      fs.writeFileSync(htmlPath, htmlContent);
+      console.log('HTML 文件保存成功:', htmlPath);
+      
+      // 成功时不弹出对话框，只在控制台输出
+    } catch (error) {
+      console.error('保存文件失败:', error);
+      dialog.showMessageBox({
+        type: 'error',
+        title: '保存失败',
+        message: '保存笔记失败',
+        detail: error.message
+      });
+    }
+  });
+
+  // 处理请求保存文件的请求
+  ipcMain.on('request-save-file', (event) => {
+    // 创建 newNote 目录
+    const newNoteDir = path.join(dataDir, 'newNote');
+    if (!fs.existsSync(newNoteDir)) {
+      fs.mkdirSync(newNoteDir, { recursive: true });
+    }
+    
+    // 显示保存对话框，默认路径为 newNote 目录
+    dialog.showSaveDialog({
+      defaultPath: path.join(newNoteDir, '新笔记.md'),
+      filters: [{ name: 'Markdown 文件', extensions: ['md'] }]
+    }).then(result => {
+      if (!result.canceled) {
+        event.sender.send('save-as', result.filePath);
+      }
+    });
   });
 
   // 处理应用激活
