@@ -155,21 +155,9 @@ function createWindow() {
   Menu.setApplicationMenu(menu);
 }
 
-// 生成 HTML 内容
-function generateHtml(content, title) {
-  return `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title}</title>
-</head>
-<body>
-  <h1>${title}</h1>
-  <div data-tag="${title}">${content}</div>
-</body>
-</html>`;
-}
+
+
+
 
 // 确保应用就绪
 app.whenReady().then(() => {
@@ -224,10 +212,16 @@ app.whenReady().then(() => {
     });
   });
 
-  // 处理保存 HTML 文件的请求
-  ipcMain.on('save-html-file', (event, data) => {
+  // 处理保存 JSON 文件的请求
+  ipcMain.on('save-note-data-file', (event, data) => {
     const { filePath, content } = data;
     try {
+      // 确保 filePath 存在
+      if (!filePath) {
+        console.error('保存 JSON 文件失败: filePath 为 undefined');
+        return;
+      }
+      
       // 确保 data 目录存在
       if (!fs.existsSync(dataDir)) {
         fs.mkdirSync(dataDir, { recursive: true });
@@ -247,9 +241,9 @@ app.whenReady().then(() => {
       }
       
       fs.writeFileSync(fullPath, content);
-      console.log('HTML 文件保存成功:', fullPath);
+      console.log('JSON 文件保存成功:', fullPath);
     } catch (error) {
-      console.error('保存 HTML 文件失败:', error);
+      console.error('保存 JSON 文件失败:', error);
     }
   });
 
@@ -276,17 +270,53 @@ app.whenReady().then(() => {
       // 读取文件内容
       const content = fs.readFileSync(filePath, 'utf8');
       console.log('读取文件成功:', filePath);
-      // 发送文件内容到渲染进程
-      event.sender.send('open-file', { filePath, content });
+      
+      // 检查对应的 JSON 文件是否存在
+      const jsonFileName = path.basename(filePath, '.md') + '.json';
+      const jsonPath = path.join(dataDir, jsonFileName);
+      let tags = [];
+      
+      if (fs.existsSync(jsonPath)) {
+        console.log('JSON 文件存在:', jsonPath);
+        // 读取 JSON 文件内容
+        const jsonContent = fs.readFileSync(jsonPath, 'utf8');
+        console.log('读取 JSON 文件成功:', jsonPath);
+        // 解析 JSON 文件，提取标签信息
+        try {
+          const noteData = JSON.parse(jsonContent);
+          if (noteData.tags) {
+            tags = noteData.tags;
+            console.log('提取的标签信息:', tags);
+          }
+        } catch (parseError) {
+          console.error('解析 JSON 文件失败:', parseError);
+        }
+      }
+      
+      // 发送文件内容和标签信息到渲染进程
+      event.sender.send('open-file', { filePath, content, tags });
     } catch (error) {
       console.error('读取文件失败:', error);
+      event.sender.send('open-file', { filePath, content: '', tags: [] });
     }
   });
 
   // 处理保存笔记文件的请求
   ipcMain.on('save-note-file', (event, data) => {
-    const { filePath, content, title } = data;
+    const { filePath, content, title, tags = [] } = data;
     try {
+      // 确保 filePath 存在
+      if (!filePath) {
+        console.error('保存文件失败: filePath 为 undefined');
+        dialog.showMessageBox({
+          type: 'error',
+          title: '保存失败',
+          message: '保存笔记失败',
+          detail: '文件路径不能为空'
+        });
+        return;
+      }
+      
       // 解析文件路径
       let fullPath;
       if (path.isAbsolute(filePath)) {
@@ -299,18 +329,50 @@ app.whenReady().then(() => {
       // 确保文件所在目录存在
       const dirPath = path.dirname(fullPath);
       if (!fs.existsSync(dirPath)) {
-        fs.mkdirSync(dirPath, { recursive: true });
+        try {
+          fs.mkdirSync(dirPath, { recursive: true });
+        } catch (mkdirError) {
+          console.error('创建目录失败:', mkdirError);
+          dialog.showMessageBox({
+            type: 'error',
+            title: '保存失败',
+            message: '保存笔记失败',
+            detail: '无法创建文件目录: ' + mkdirError.message
+          });
+          return;
+        }
       }
       
       // 保存 Markdown 文件
-      fs.writeFileSync(fullPath, content);
-      console.log('Markdown 文件保存成功:', fullPath);
+      try {
+        fs.writeFileSync(fullPath, content);
+        console.log('Markdown 文件保存成功:', fullPath);
+      } catch (writeError) {
+        console.error('保存 Markdown 文件失败:', writeError);
+        dialog.showMessageBox({
+          type: 'error',
+          title: '保存失败',
+          message: '保存笔记失败',
+          detail: '无法写入文件: ' + writeError.message
+        });
+        return;
+      }
       
-      // 生成并保存 HTML 文件
-      const htmlContent = generateHtml(content, title);
-      const htmlPath = path.join(dataDir, `${path.basename(fullPath, '.md')}.html`);
-      fs.writeFileSync(htmlPath, htmlContent);
-      console.log('HTML 文件保存成功:', htmlPath);
+      // 生成并保存 JSON 文件
+      try {
+        const jsonContent = JSON.stringify({
+          title: title,
+          content: content,
+          tags: tags,
+          lastModified: new Date().toISOString()
+        });
+        const jsonPath = path.join(dataDir, `${path.basename(fullPath, '.md')}.json`);
+        fs.writeFileSync(jsonPath, jsonContent);
+        console.log('JSON 文件保存成功:', jsonPath);
+      } catch (jsonError) {
+        console.error('保存 JSON 文件失败:', jsonError);
+        // JSON 文件保存失败不影响 Markdown 文件的保存
+      }
       
       // 成功时不弹出对话框，只在控制台输出
     } catch (error) {

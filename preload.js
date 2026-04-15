@@ -11,12 +11,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onFolderFiles: (callback) => ipcRenderer.on('folder-files', (event, files) => callback(files)),
   
   // 发送消息给主进程
-  showMessageBox: (options) => ipcRenderer.invoke('show-message-box', options),
-  saveHtmlFile: (filePath, content) => ipcRenderer.send('save-html-file', { filePath, content }),
+  saveNoteDataFile: (filePath, content) => ipcRenderer.send('save-note-data-file', { filePath, content }),
   readFolder: (folderPath) => ipcRenderer.send('read-folder', folderPath),
   readFile: (filePath) => ipcRenderer.send('read-file', filePath),
   requestOpenFile: () => ipcRenderer.send('request-open-file'),
   requestOpenFolder: () => ipcRenderer.send('request-open-folder'),
-  saveNoteFile: (filePath, content, title) => ipcRenderer.send('save-note-file', { filePath, content, title }),
+  saveNoteFile: (filePath, content, title, tags) => ipcRenderer.send('save-note-file', { filePath, content, title, tags }),
   requestSaveFile: () => ipcRenderer.send('request-save-file')
 });
